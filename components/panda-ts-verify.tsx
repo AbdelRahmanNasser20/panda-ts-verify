@@ -8,8 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Upload, Send, Pencil, Trash2, Check, Edit2, X, ChevronDown, ChevronUp } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Badge } from "@/components/ui/badge"
-import { CalendarIcon, ClockIcon, MapPinIcon, BriefcaseIcon, AlertTriangleIcon } from "lucide-react"
+// import { , CalendarIcon } from "@/components/ui/badge"
+import { Badge, ClockIcon, MapPinIcon, BriefcaseIcon } from "lucide-react"
 import * as XLSX from "xlsx"
 
 interface TableRow {
@@ -20,6 +20,8 @@ interface TableRow {
   location: string
   isEditing: boolean
 }
+type ExcelRow = [string | number, number, string, string];
+
 
 interface Alert {
   type: "'success'" | "'error'"
@@ -47,12 +49,12 @@ const positions = [
   "Summer Manager", "Summer Teacher", "Teacher - Assistant", "Teacher - Lead", "Teacher - Online Class"
 ]
 
-const roleMapping: { [key: string]: string } = {
-  // Add your role mappings here
-  // For example:
-  // "Teacher": "Teacher - Lead",
-  // "Assistant": "Teacher - Assistant",
-}
+// const roleMapping: { [key: string]: string } = {
+//   // Add your role mappings here
+//   // For example:
+//   // "Teacher": "Teacher - Lead",
+//   // "Assistant": "Teacher - Assistant",
+// }
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -229,7 +231,7 @@ export function PandaTsVerify() {
     setRows(rows.filter(row => row.id !== id))
   }
 
-  const isValidDate = (date: any): boolean => {
+  const isValidDate = (date): boolean => {
     return date instanceof Date && !isNaN(date.getTime());
   }
 
@@ -249,20 +251,23 @@ export function PandaTsVerify() {
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
-          const rawData = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+          const rawData = XLSX.utils.sheet_to_json<ExcelRow[]>(worksheet, { header: 1 });
+          
+          // read from the 3rd index 
           const filteredData = rawData.slice(3).filter(row => {
-            const [date, hours, location, role] = row;
+            const [date, role] = row;
+            console.log("this is the date", typeof(date))
             return role && isValidDate(date);
           }).map(row => {
             const [date, hours, location, role] = row;
             const formattedDate = typeof date === 'number' ? convertExcelDate(date) : new Date(date).toISOString().slice(0, 10);
-            const transformedRole = roleMapping[role] || role;
+            // const transformedRole = roleMapping[role] || role;
             return { 
               id: Date.now() + Math.random(),
               date: formattedDate, 
               hours: hours || 0, 
               location: location || "", 
-              position: transformedRole || "",
+              position: role || "",
               isEditing: false
             };
           });
@@ -286,8 +291,8 @@ export function PandaTsVerify() {
   }
 
   const sendTableDataToBackend = async () => {
-    const verifyEndpoint = "https://time-verify-backend-4c679305e2eb.herokuapp.com/verify";
-    // const verifyEndpoint = "http://127.0.0.1:5001/verify";
+    // const verifyEndpoint = "https://time-verify-backend-4c679305e2eb.herokuapp.com/verify";
+    const verifyEndpoint = "http://127.0.0.1:5001/verify";
     
     if (!email) {
       showAlert("'error'", "'Email is required'");
