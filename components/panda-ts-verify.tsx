@@ -8,8 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Upload, Send, Pencil, Trash2, Check, Edit2, X, ChevronDown, ChevronUp } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-// import { , CalendarIcon } from "@/components/ui/badge"
-import { Badge, ClockIcon, MapPinIcon, BriefcaseIcon } from "lucide-react"
+import { ClockIcon, MapPinIcon, BriefcaseIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"; 
+
 import * as XLSX from "xlsx"
 
 interface TableRow {
@@ -20,8 +21,7 @@ interface TableRow {
   location: string
   isEditing: boolean
 }
-type ExcelRow = [string | number, number, string, string];
-
+type ExcelRow = [string, number, string, string];
 
 interface Alert {
   type: "'success'" | "'error'"
@@ -212,7 +212,7 @@ export function PandaTsVerify() {
           const newDate = value ? new Date(value as string) : new Date();
           return { ...row, [field]: newDate.toISOString().split("'T'")[0] };
         } else if (field === 'hours') {
-          return { ...row, [field]: value === "''" ? 0 : Number(value) };
+          return { ...row, [field]: value === "" ? 0 : Number(value) };
         } else {
           return { ...row, [field]: value };
         }
@@ -230,15 +230,37 @@ export function PandaTsVerify() {
   const deleteRow = (id: number) => {
     setRows(rows.filter(row => row.id !== id))
   }
+  
+  const isValidDate = (dateInput: string | number | Date): boolean => {
+    try {
+      const date = parseExcelDate(dateInput);
+      return !isNaN(date.getTime());
+    } catch {
+      return false;
+    }
+  };
 
-  const isValidDate = (date): boolean => {
-    return date instanceof Date && !isNaN(date.getTime());
-  }
-
-  const convertExcelDate = (excelDate: number): string => {
-    const date = new Date((excelDate - 25569) * 86400 * 1000);
-    return date.toISOString().slice(0, 10);
-  }
+  const parseExcelDate = (excelDate: string | number | Date): Date => {
+    let dateObj: Date;
+  
+    if (excelDate instanceof Date) {
+      dateObj = excelDate;
+    } else if (typeof excelDate === 'number') {
+      // Excel serial date number
+      dateObj = new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+    } else if (typeof excelDate === 'string') {
+      dateObj = new Date(excelDate);
+    } else {
+      throw new Error('Invalid date format');
+    }
+  
+    if (isNaN(dateObj.getTime())) {
+      throw new Error('Invalid date value');
+    }
+  
+    return dateObj;
+  };
+  
 
   const handleFiles = (files: FileList) => {
     if (files.length > 0) {
@@ -251,18 +273,16 @@ export function PandaTsVerify() {
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
-          const rawData = XLSX.utils.sheet_to_json<ExcelRow[]>(worksheet, { header: 1 });
-          
-          // read from the 3rd index 
-          const filteredData = rawData.slice(3).filter(row => {
-            const [date, role] = row;
-            console.log("this is the date", typeof(date))
+          const rawData = XLSX.utils.sheet_to_json<ExcelRow>(worksheet, { header: 1 });
+          const filteredData = rawData.slice(3).filter(row => {            
+            const [date, , role, ] = row;
             return role && isValidDate(date);
           }).map(row => {
-            const [date, hours, location, role] = row;
-            const formattedDate = typeof date === 'number' ? convertExcelDate(date) : new Date(date).toISOString().slice(0, 10);
-            // const transformedRole = roleMapping[role] || role;
-            return { 
+            const [date, hours, role, location] = row;
+            const parsedDate = parseExcelDate(date);
+            const formattedDate = parsedDate.toISOString().slice(0, 10);
+
+            return {               
               id: Date.now() + Math.random(),
               date: formattedDate, 
               hours: hours || 0, 
@@ -270,10 +290,12 @@ export function PandaTsVerify() {
               position: role || "",
               isEditing: false
             };
-          });
-  
+          });          
+          
+          console.log("After this " , filteredData);
+          // console.log(filteredData);
           setRows(filteredData);
-          showAlert("'success'", "'File data loaded successfully'")
+          showAlert("'success'", 'File data loaded successfully');
         };
   
         reader.readAsArrayBuffer(file);
