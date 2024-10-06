@@ -327,7 +327,7 @@ export function PandaTsVerify() {
     try {
       setIsSubmitting(true);
       const response = await fetch(verifyEndpoint, {
-        method: "'POST'",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
