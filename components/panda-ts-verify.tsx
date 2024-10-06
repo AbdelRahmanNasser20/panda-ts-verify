@@ -291,9 +291,7 @@ export function PandaTsVerify() {
               isEditing: false
             };
           });          
-          
-          console.log("After this " , filteredData);
-          // console.log(filteredData);
+                             
           setRows(filteredData);
           showAlert("'success'", 'File data loaded successfully');
         };
@@ -313,8 +311,8 @@ export function PandaTsVerify() {
   }
 
   const sendTableDataToBackend = async () => {
-    // const verifyEndpoint = "https://time-verify-backend-4c679305e2eb.herokuapp.com/verify";
-    const verifyEndpoint = "http://127.0.0.1:5001/verify";
+    const verifyEndpoint = "https://time-verify-backend-4c679305e2eb.herokuapp.com/verify";
+    // const verifyEndpoint = "http://127.0.0.1:5001/verify";
     
     if (!email) {
       showAlert("'error'", "'Email is required'");
