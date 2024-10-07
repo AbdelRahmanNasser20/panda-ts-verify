@@ -321,7 +321,12 @@ export function PandaTsVerify() {
   
     try {
       setIsSubmitting(true);
-      const tableData = rows.map(({ id, isEditing, ...rest }) => rest);      
+      const tableData = rows.map(({ date, hours, location, position }) => ({
+        date,
+        hours,
+        location,
+        position
+      }));     
       const response = await fetch(verifyEndpoint, {
         method: "POST",
         headers: {
