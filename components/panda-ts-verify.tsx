@@ -173,8 +173,7 @@ export function PandaTsVerify() {
     const storedEmail = localStorage.getItem("userEmail")
     if (storedEmail) setEmail(storedEmail)
 
-    const storedRows = localStorage.getItem("rows")
-    console.log("getting storedRows", storedRows)
+    const storedRows = localStorage.getItem("rows")    
     if (storedRows) setRows(JSON.parse(storedRows))
   }, [])
 
@@ -183,12 +182,11 @@ export function PandaTsVerify() {
   }, [email])
 
   useEffect(() => {
-    if (rows.length > 0) {
-      console.log("setting table rows", rows)
+    if (rows.length > 0) {      
       localStorage.setItem("rows", JSON.stringify(rows))
     }
   }, [rows])
-  
+
   const addRow = () => {
     const newRow: TableRow = {
       id: Date.now(),
@@ -272,8 +270,7 @@ export function PandaTsVerify() {
           const worksheet = workbook.Sheets[firstSheetName];
           const rawData = XLSX.utils.sheet_to_json<ExcelRow>(worksheet, { header: 1 });
           const filteredData = rawData.slice(3).filter(row => {            
-            const [date, , role, ] = row;
-            console.log(role)
+            const [date, , role, ] = row;            
             return role && isValidDate(date);
           }).map(row => {
             const [date, hours, location, role] = row;
@@ -288,8 +285,7 @@ export function PandaTsVerify() {
               position: role || "",
               isEditing: false
             };
-          });          
-          console.log("SETTING ", filteredData)
+          });                     
                              
           setRows(filteredData);
           showAlert("'success'", 'File data loaded successfully');
@@ -310,8 +306,8 @@ export function PandaTsVerify() {
   }
 
   const sendTableDataToBackend = async () => {
-    // const verifyEndpoint = "https://time-verify-backend-4c679305e2eb.herokuapp.com/verify";
-    const verifyEndpoint = "http://127.0.0.1:5001/verify";
+    const verifyEndpoint = "https://time-verify-backend-4c679305e2eb.herokuapp.com/verify";
+    // const verifyEndpoint = "http://127.0.0.1:5001/verify";
     
     if (!email) {
       showAlert("'error'", "'Email is required'");
@@ -325,8 +321,7 @@ export function PandaTsVerify() {
   
     try {
       setIsSubmitting(true);
-      const tableData = rows.map(({ id, isEditing, ...rest }) => rest);
-      console.log("Sending ", tableData);
+      const tableData = rows.map(({ id, isEditing, ...rest }) => rest);      
       const response = await fetch(verifyEndpoint, {
         method: "POST",
         headers: {
