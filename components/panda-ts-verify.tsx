@@ -49,13 +49,6 @@ const positions = [
   "Summer Manager", "Summer Teacher", "Teacher - Assistant", "Teacher - Lead", "Teacher - Online Class"
 ]
 
-// const roleMapping: { [key: string]: string } = {
-//   // Add your role mappings here
-//   // For example:
-//   // "Teacher": "Teacher - Lead",
-//   // "Assistant": "Teacher - Assistant",
-// }
-
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -85,7 +78,7 @@ const TimesheetVerificationReport = ({ report }: { report: Report }) => {
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         <div className="flex justify-between items-center">
-          <span className="text-blue-700 dark:text-blue-300 font-semibold">Overall Status:</span>
+          <span className="text-blue-700 dark:text-blue-300 font-semibold" style = {{marginTop: "15px"}}>Overall Status:</span>
           <StatusBadge isValid={isValid} />
         </div>
         {isOpen && (
@@ -177,21 +170,25 @@ export function PandaTsVerify() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem("'userEmail'")
+    const storedEmail = localStorage.getItem("userEmail")
     if (storedEmail) setEmail(storedEmail)
 
-    const storedRows = localStorage.getItem("'tableRows'")
+    const storedRows = localStorage.getItem("rows")
+    console.log("getting storedRows", storedRows)
     if (storedRows) setRows(JSON.parse(storedRows))
   }, [])
 
   useEffect(() => {
-    localStorage.setItem("'userEmail'", email)
+    localStorage.setItem("userEmail", email)
   }, [email])
 
   useEffect(() => {
-    localStorage.setItem("'tableRows'", JSON.stringify(rows))
+    if (rows.length > 0) {
+      console.log("setting table rows", rows)
+      localStorage.setItem("rows", JSON.stringify(rows))
+    }
   }, [rows])
-
+  
   const addRow = () => {
     const newRow: TableRow = {
       id: Date.now(),
@@ -276,9 +273,10 @@ export function PandaTsVerify() {
           const rawData = XLSX.utils.sheet_to_json<ExcelRow>(worksheet, { header: 1 });
           const filteredData = rawData.slice(3).filter(row => {            
             const [date, , role, ] = row;
+            console.log(role)
             return role && isValidDate(date);
           }).map(row => {
-            const [date, hours, role, location] = row;
+            const [date, hours, location, role] = row;
             const parsedDate = parseExcelDate(date);
             const formattedDate = parsedDate.toISOString().slice(0, 10);
 
@@ -291,6 +289,7 @@ export function PandaTsVerify() {
               isEditing: false
             };
           });          
+          console.log("SETTING ", filteredData)
                              
           setRows(filteredData);
           showAlert("'success'", 'File data loaded successfully');
@@ -311,8 +310,8 @@ export function PandaTsVerify() {
   }
 
   const sendTableDataToBackend = async () => {
-    const verifyEndpoint = "https://time-verify-backend-4c679305e2eb.herokuapp.com/verify";
-    // const verifyEndpoint = "http://127.0.0.1:5001/verify";
+    // const verifyEndpoint = "https://time-verify-backend-4c679305e2eb.herokuapp.com/verify";
+    const verifyEndpoint = "http://127.0.0.1:5001/verify";
     
     if (!email) {
       showAlert("'error'", "'Email is required'");
@@ -326,12 +325,19 @@ export function PandaTsVerify() {
   
     try {
       setIsSubmitting(true);
+      const tableData = rows.map(({ id, isEditing, ...rest }) => rest);
+      console.log("Sending ", tableData);
       const response = await fetch(verifyEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, tableData: rows }),
+        body: JSON.stringify({
+          email,          
+          tableData
+        }),        
+        credentials: 'include', // If you're using credentials like cookies
+
       });
   
       const result = await response.json();
